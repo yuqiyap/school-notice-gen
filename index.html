@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>英文班自习通告生成器</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-radius: 12px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-bg);
+            padding: 45px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 35px;
+            font-size: 32px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        .form-row {
+            display: flex;
+            gap: 25px;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+            font-size: 19px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 18px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        .btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 15px;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn:active {
+            transform: translateY(2px);
+        }
+        .btn-success {
+            background-color: #27ae60;
+            margin-top: 25px;
+        }
+        .btn-success:hover {
+            background-color: #219a52;
+        }
+        .btn-queue {
+            background-color: #f39c12;
+            margin-top: 20px;
+        }
+        .btn-queue:hover {
+            background-color: #e67e22;
+        }
+        .btn-danger {
+            background-color: #e74c3c;
+            margin-top: 15px;
+            padding: 10px 20px;
+            font-size: 16px;
+            width: auto;
+            display: inline-block;
+        }
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .classes-container {
+            margin-top: 35px;
+            background: #f1f4f6;
+            padding: 25px;
+            border-radius: 8px;
+            display: none;
+            border: 1px solid #d6dbdf;
+        }
+        .queue-container {
+            margin-top: 35px;
+            background: #eef7f2;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #c3e6cb;
+            display: none;
+        }
+        .class-item {
+            background: white;
+            padding: 18px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .class-info {
+            flex: 1;
+            font-size: 18px;
+        }
+        .class-room-input {
+            flex: 0 0 250px;
+        }
+        .capacity-alert {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 18px;
+            display: none;
+        }
+        .capacity-ok {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .capacity-warn {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        small {
+            font-size: 15px;
+        }
+
+        /* 预览与打印区域 */
+        #print-area {
+            display: none;
+        }
+        
+        @page {
+            size: A4;
+            /* 稍微收缩边距，给卡片更多空间 */
+            margin: 8mm 10mm;
+        }
+        
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+                margin: 0;
+            }
+            .container {
+                display: none;
+            }
+            #print-area {
+                display: block;
+                width: 100%;
+            }
+            
+            .notice-card {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                /* 稍微降低最小高度为84mm，留出弹性空间应对多行内容 */
+                min-height: 84mm; 
+                border: 1px dashed #777;
+                padding: 16px 20px;
+                margin-bottom: 3mm;
+                box-sizing: border-box;
+                font-size: 12pt;
+                line-height: 1.45;
+                /* 核心：不要强制分页，只要卡片内部不断开即可，浏览器会自动排满纸张 */
+                page-break-inside: avoid;
+            }
+            
+            .notice-card h3 {
+                font-size: 13pt;
+                margin-top: 0;
+                margin-bottom: 12px;
+                font-weight: bold;
+            }
+            .notice-card ul {
+                margin: 10px 0;
+                padding-left: 20px;
+            }
+            .notice-card li {
+                margin-bottom: 5px;
+            }
+            
+            .highlight-item {
+                background-color: #fff3cd !important;
+                font-weight: bold;
+                padding: 2px 6px;
+                border-radius: 4px;
+                border-left: 4px solid #ffc107;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .signature {
+                margin-top: auto; 
+                line-height: 1.6;
+                padding-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📝 英文班自习通告生成器</h1>
+        
+        <div class="form-group" style="max-width: 300px;">
+            <label>📅 统一自习日期 (日/月):</label>
+            <input type="text" id="dateInput" placeholder="例如: 08/07">
+        </div>
+
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; border: 1px solid #e9ecef;">
+            <h3 style="margin-top: 0; color: var(--primary-color); border-bottom: 1px solid #ddd; padding-bottom: 8px;">第一步：录入当前合并组</h3>
+            <div class="form-group">
+                <label>节次 (当前组):</label>
+                <input type="text" id="periodInput" value="第5、6节" placeholder="例如: 第5、6节">
+            </div>
+
+            <div class="form-group">
+                <label>填入英文班数据 (直接复制粘贴):</label>
+                <textarea id="engClassInput" rows="3" placeholder="例如: WB B22C, WR B22E"></textarea>
+            </div>
+
+            <button class="btn" onclick="parseClasses()">🔍 提取班级并编排教室</button>
+        </div>
+
+        <div id="classesContainer" class="classes-container">
+            <h3 style="margin-top:0; color:var(--primary-color); font-size:22px;">第二步：为当前组指派自习教室</h3>
+            <div id="classesList"></div>
+            
+            <div id="capacityAlert" class="capacity-alert"></div>
+            
+            <button class="btn btn-queue" onclick="addToQueue()">➕ 确认此组安排，加入批量打印队列</button>
+        </div>
+
+        <div id="queueContainer" class="queue-container">
+            <h3 style="margin-top:0; color:#155724; font-size:22px; border-bottom: 1px solid #c3e6cb; padding-bottom: 8px;">📋 待处理打印队列</h3>
+            <div id="queueList" style="margin-top: 15px;"></div>
+            
+            <button class="btn btn-success" onclick="generateAndPrintAll()">🖨️ 一键预览并连续打印队列中所有通告</button>
+            <button class="btn btn-danger" onclick="clearQueue()">🗑️ 清空所有队列</button>
+        </div>
+    </div>
+
+    <div id="print-area"></div>
+
+    <script>
+        const db = {
+            "teachers": {
+                "J1A": "韩旻希", "J1B": "李心慧", "J1C": "刘靖腾", "J1D": "简耀聪", "J1E": "杨灵秀", "J1F": "高楚莹", "J1G": "曾宝燕", "J1H": "余繐坅", "J1I": "莫彩凤", "J1J": "吴宝萍", 
+                "J2A": "郑颢扬", "J2B": "黄绮丽", "J2C": "杜婉恬", "J2D": "颜文蔚", "J2E": "严詠欣", "J2F": "侯缘心", "J2G": "蔡婉玲", "J2H": "刘佩佩", "J2I": "曾佩敏", "J2J": "陈微敏", "J2K": "刘善城", "J2L": "苏上伟", 
+                "J3A": "许慧儿", "J3B": "叶荣发", "J3C": "廖慧君", "J3D": "李美兰", "J3E": "刘紫媛", "J3F": "许晓雯", "J3G": "萧可柔", "J3H": "刘慧琪", "J3I": "李秀琴", "J3J": "陈泇伊", 
+                "S1C1": "温珮恩", "S1C2": "胡立珉", "S1C3": "尹水梅", "S1C4": "周依霖", "S1C5": "陈慧琳", "S1C6": "许云竮", "S1C7": "蔡昱", "S1S1": "麦淑燕", "S1S2": "黄国贤", "S1S3": "林其万", 
+                "S2C1": "吴莉瑮", "S2C2": "林卉", "S2C3": "张诗雯", "S2C4": "吴风航", "S2C5": "林欣慧", "S2C6": "赖伟伦", "S2S1": "朱佩云", "S2S2": "姚建业", "S2S3": "王乐", 
+                "S3C1": "曾敏茹", "S3C2": "黄淑娟", "S3C3": "洪庆贤", "S3C4": "李彩燕", "S3C5": "李秀珍", "S3S1": "陈授勤", "S3S2": "陈美溢", "S3S3": "李文豪"
+            },
+            "population": {"J1A": 54, "J1B": 56, "J1C": 54, "J1D": 52, "J1E": 55, "J1F": 56, "J1G": 56, "J1H": 54, "J1I": 55, "J1J": 56, "J2A": 56, "J2B": 56, "J2C": 56, "J2D": 56, "J2E": 55, "J2F": 55, "J2G": 56, "J2H": 55, "J2I": 56, "J2J": 55, "J2K": 56, "J2L": 53, "J3A": 56, "J3B": 56, "J3C": 53, "J3D": 56, "J3E": 55, "J3F": 56, "J3G": 54, "J3H": 54, "J3I": 49, "J3J": 51, "S1C1": 55, "S1C2": 56, "S1C3": 55, "S1C4": 54, "S1C5": 53, "S1C6": 50, "S1C7": 49, "S1S1": 56, "S1S2": 54, "S1S3": 56, "S2C1": 55, "S2C2": 55, "S2C3": 56, "S2C4": 56, "S2C5": 51, "S2C6": 51, "S2S1": 56, "S2S2": 54, "S2S3": 54, "S3C1": 53, "S3C2": 49, "S3C3": 48, "S3C4": 45, "S3C5": 38, "S3S1": 49, "S3S2": 47, "S3S3": 47, "全校总计": 3158},
+            "mapping": {"B11A": [{"class": "J1A", "students": 27}], "B11B": [{"class": "J1E", "students": 28}], "B11C": [{"class": "J1J", "students": 29}], "B11D": [{"class": "J1A", "students": 7}, {"class": "J1E", "students": 9}, {"class": "J1J", "students": 14}], "B11E": [{"class": "J1D", "students": 28}], "B11F": [{"class": "J1F", "students": 27}], "B11G": [{"class": "J1G", "students": 29}], "B11H": [{"class": "J1D", "students": 8}, {"class": "J1F", "students": 12}, {"class": "J1G", "students": 7}], "B11I": [{"class": "J1B", "students": 25}], "B11J": [{"class": "J1C", "students": 26}], "B11K": [{"class": "J1H", "students": 27}], "B11L": [{"class": "J1I", "students": 24}], "B11M": [{"class": "J1B", "students": 9}, {"class": "J1H", "students": 14}], "B11N": [{"class": "J1C", "students": 10}, {"class": "J1I", "students": 14}], "B21A": [{"class": "J1A", "students": 20}, {"class": "J1E", "students": 6}], "B21B": [{"class": "J1E", "students": 12}, {"class": "J1J", "students": 13}], "B21C": [{"class": "J1D", "students": 16}, {"class": "J1F", "students": 9}], "B21D": [{"class": "J1F", "students": 8}, {"class": "J1G", "students": 20}], "B21E": [{"class": "J1B", "students": 22}], "B21F": [{"class": "J1C", "students": 18}, {"class": "J1H", "students": 7}], "B21G": [{"class": "J1H", "students": 6}, {"class": "J1I", "students": 18}], "B22A": [{"class": "J2D", "students": 28}], "B22B": [{"class": "J2F", "students": 28}], "B22C": [{"class": "J2I", "students": 28}], "B22D": [{"class": "J2K", "students": 27}], "B22E": [{"class": "J2D", "students": 6}, {"class": "J2F", "students": 5}, {"class": "J2I", "students": 7}, {"class": "J2K", "students": 10}], "B22F": [{"class": "J2A", "students": 28}], "B22G": [{"class": "J2C", "students": 30}], "B22H": [{"class": "J2J", "students": 24}], "B22I": [{"class": "J2L", "students": 25}], "B22J": [{"class": "J2J", "students": 13}, {"class": "J2L", "students": 11}], "B22K": [{"class": "J2B", "students": 28}], "B22L": [{"class": "J2E", "students": 27}], "B22M": [{"class": "J2G", "students": 28}], "B22N": [{"class": "J2H", "students": 27}], "B22O": [{"class": "J2B", "students": 7}, {"class": "J2E", "students": 7}, {"class": "J2G", "students": 9}, {"class": "J2H", "students": 4}], "H12A": [{"class": "J2D", "students": 22}, {"class": "J2F", "students": 6}], "H12B": [{"class": "J2F", "students": 17}, {"class": "J2I", "students": 11}], "H12C": [{"class": "J2I", "students": 10}, {"class": "J2K", "students": 19}], "H12D": [{"class": "J2C", "students": 26}, {"class": "J2L", "students": 4}], "H12E": [{"class": "J2A", "students": 28}, {"class": "J2J", "students": 1}], "H12F": [{"class": "J2J", "students": 17}, {"class": "J2L", "students": 13}], "H12G": [{"class": "J2B", "students": 21}, {"class": "J2G", "students": 9}], "H12H": [{"class": "J2E", "students": 18}, {"class": "J2G", "students": 10}], "H12I": [{"class": "J2E", "students": 3}, {"class": "J2H", "students": 24}], "H13A": [{"class": "J3A", "students": 28}], "H13B": [{"class": "J3B", "students": 26}], "H13C": [{"class": "J3J", "students": 27}], "H13D": [{"class": "J3A", "students": 8}, {"class": "J3B", "students": 9}, {"class": "J3J", "students": 11}], "H13E": [{"class": "J3C", "students": 27}], "H13F": [{"class": "J3D", "students": 28}], "H13G": [{"class": "J3G", "students": 27}], "H13H": [{"class": "J3C", "students": 8}, {"class": "J3D", "students": 11}, {"class": "J3G", "students": 7}], "H13I": [{"class": "J3E", "students": 26}], "H13J": [{"class": "J3F", "students": 27}], "H13K": [{"class": "J3H", "students": 27}], "H13L": [{"class": "J3I", "students": 26}], "H13M": [{"class": "J3E", "students": 13}, {"class": "J3F", "students": 14}], "H13N": [{"class": "J3H", "students": 13}, {"class": "J3I", "students": 12}], "H23A": [{"class": "J3A", "students": 20}, {"class": "J3B", "students": 8}], "H23B": [{"class": "J3B", "students": 13}, {"class": "J3J", "students": 13}], "H23C": [{"class": "J3C", "students": 18}, {"class": "J3G", "students": 9}], "H23D": [{"class": "J3D", "students": 17}, {"class": "J3G", "students": 11}], "H23E": [{"class": "J3E", "students": 16}, {"class": "J3I", "students": 11}], "H23F": [{"class": "J3F", "students": 15}, {"class": "J3H", "students": 14}], "H24A": [{"class": "S1C3", "students": 28}], "H24B": [{"class": "S1C4", "students": 28}], "H24C": [{"class": "S1C5", "students": 27}], "H24D": [{"class": "S1C3", "students": 7}, {"class": "S1C4", "students": 9}, {"class": "S1C5", "students": 12}], "H24E": [{"class": "S1S1", "students": 22}, {"class": "S1S3", "students": 5}], "H24F": [{"class": "S1S2", "students": 26}], "H24G": [{"class": "S1S3", "students": 26}], "H24H": [{"class": "S1C1", "students": 30}], "H24I": [{"class": "S1C2", "students": 30}], "H24J": [{"class": "S1C6", "students": 27}], "H24K": [{"class": "S1C7", "students": 27}], "H24L": [{"class": "S1C2", "students": 1}, {"class": "S1C6", "students": 12}, {"class": "S1C7", "students": 13}], "P14A": [{"class": "S1C3", "students": 20}, {"class": "S1C4", "students": 6}], "P14B": [{"class": "S1C4", "students": 11}, {"class": "S1C5", "students": 14}], "P14C": [{"class": "S1S1", "students": 29}], "P14D": [{"class": "S1S2", "students": 28}, {"class": "S1S3", "students": 1}], "P14E": [{"class": "S1S1", "students": 5}, {"class": "S1S3", "students": 24}], "P14F": [{"class": "S1C1", "students": 25}], "P14G": [{"class": "S1C2", "students": 25}], "P14H": [{"class": "S1C6", "students": 11}, {"class": "S1C7", "students": 10}], "P15A": [{"class": "S2C2", "students": 27}], "P15B": [{"class": "S2C4", "students": 27}], "P15C": [{"class": "S2C5", "students": 26}], "P15D": [{"class": "S2C6", "students": 27}], "P15E": [{"class": "S2C2", "students": 13}, {"class": "S2C5", "students": 13}], "P15F": [{"class": "S2C4", "students": 14}, {"class": "S2C6", "students": 12}], "P15G": [{"class": "S2S1", "students": 28}], "P15H": [{"class": "S2S2", "students": 27}], "P15I": [{"class": "S2S3", "students": 27}], "P15J": [{"class": "S2S2", "students": 15}, {"class": "S2S3", "students": 11}], "P15K": [{"class": "S2C1", "students": 29}], "P15L": [{"class": "S2C3", "students": 29}], "P15M": [{"class": "S2C1", "students": 9}, {"class": "S2C3", "students": 20}], "P16A": [{"class": "S3C4", "students": 12}, {"class": "S3S1", "students": 6}, {"class": "S3S2", "students": 2}, {"class": "S3S3", "students": 8}], "P16B": [{"class": "S3C1", "students": 3}, {"class": "S3C2", "students": 3}, {"class": "S3C3", "students": 5}, {"class": "S3C5", "students": 14}], "P25A": [{"class": "S2C2", "students": 15}, {"class": "S2C5", "students": 12}], "P25B": [{"class": "S2C4", "students": 15}, {"class": "S2C6", "students": 12}], "P25C": [{"class": "S2S1", "students": 28}], "P25D": [{"class": "S2S2", "students": 12}, {"class": "S2S3", "students": 16}], "P25E": [{"class": "S2C1", "students": 17}, {"class": "S2C3", "students": 7}], "P26A": [{"class": "S3S1", "students": 28}, {"class": "S3S2", "students": 1}], "P26B": [{"class": "S3S2", "students": 30}], "P26C": [{"class": "S3S2", "students": 2}, {"class": "S3S3", "students": 25}], "P26D": [{"class": "S3C4", "students": 22}], "P26E": [{"class": "S3C1", "students": 25}], "P26F": [{"class": "S3C2", "students": 22}], "P26G": [{"class": "S3C3", "students": 23}], "P26H": [{"class": "S3C5", "students": 20}], "P26I": [{"class": "S3C1", "students": 10}, {"class": "S3C2", "students": 6}, {"class": "S3C3", "students": 8}], "P36A": [{"class": "S3C4", "students": 11}, {"class": "S3S1", "students": 15}], "P36B": [{"class": "S3S2", "students": 12}, {"class": "S3S3", "students": 14}], "P36C": [{"class": "S3C1", "students": 15}, {"class": "S3C3", "students": 12}], "P36D": [{"class": "S3C2", "students": 18}, {"class": "S3C5", "students": 4}]}
+        };
+        
+        let globalPrintQueue = [];      
+        let currentParsedClasses = [];  
+        let totalStudents = 0;          
+        
+        let batchIdCounter = 0;
+
+        window.onload = function() {
+            const today = new Date();
+            const d = String(today.getDate()).padStart(2, '0');
+            const m = String(today.getMonth() + 1).padStart(2, '0');
+            document.getElementById('dateInput').value = d + '/' + m;
+        };
+
+        function parseClasses() {
+            const input = document.getElementById('engClassInput').value;
+            const words = input.match(/[A-Z0-9]+/gi) || [];
+            const engClasses = [...new Set(words.map(w => w.toUpperCase()).filter(w => db.mapping[w]))];
+
+            if (engClasses.length === 0) {
+                alert("未能从输入中识别出有效的英文班编号！请检查输入。");
+                return;
+            }
+
+            currentParsedClasses = [];
+            totalStudents = 0;
+
+            engClasses.forEach(engClass => {
+                db.mapping[engClass].forEach(src => {
+                    currentParsedClasses.push({
+                        engClass: engClass,
+                        srcClass: src.class,
+                        students: src.students,
+                        teacher: db.teachers[src.class] || "未知老师",
+                        assignedRoom: ""
+                    });
+                    totalStudents += src.students;
+                });
+            });
+
+            renderClassesList();
+        }
+
+        function renderClassesList() {
+            const container = document.getElementById('classesList');
+            container.innerHTML = '';
+            
+            currentParsedClasses.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'class-item';
+                div.innerHTML = `
+                    <div class="class-info">
+                        <strong>${item.srcClass}</strong> 班的 <strong>${item.engClass}</strong> 同学 [ ${item.students}人 ]<br>
+                        <small style="color:#7f8c8d;">班导师: ${item.teacher}</small>
+                    </div>
+                    <div class="class-room-input">
+                        <input type="text" class="room-input" data-index="${index}" placeholder="输入自习教室 (首个自动联动)" oninput="handleRoomInput(${index}, this.value)">
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('classesContainer').style.display = 'block';
+            checkCapacity();
+        }
+
+        function handleRoomInput(index, value) {
+            if (index === 0) {
+                const inputs = document.querySelectorAll('.room-input');
+                for (let i = 1; i < inputs.length; i++) {
+                    inputs[i].value = value;
+                }
+            }
+            checkCapacity();
+        }
+
+        function checkCapacity() {
+            const firstRoomInput = document.querySelector('.room-input');
+            if (!firstRoomInput) return;
+            const roomName = firstRoomInput.value.trim().toUpperCase();
+            const alertBox = document.getElementById('capacityAlert');
+            
+            if (!roomName) {
+                alertBox.style.display = 'none';
+                return;
+            }
+
+            let capacity = 0;
+            if (db.population[roomName]) {
+                capacity = db.population[roomName];
+            } else {
+                for (const key in db.population) {
+                    if (roomName.includes(key.toUpperCase())) {
+                        capacity = db.population[key];
+                        break;
+                    }
+                }
+            }
+
+            if (capacity > 0) {
+                alertBox.style.display = 'block';
+                if (totalStudents <= capacity) {
+                    alertBox.className = 'capacity-alert capacity-ok';
+                    alertBox.innerHTML = `✅ 本组总人数: <strong>${totalStudents}</strong> 人。<br>目标教室 (${roomName}) 容量: <strong>${capacity}</strong> 人。位置充足。`;
+                } else {
+                    alertBox.className = 'capacity-alert capacity-warn';
+                    alertBox.innerHTML = `⚠️ 警告！本组总人数: <strong>${totalStudents}</strong> 人。<br>目标教室 (${roomName}) 容量仅 <strong>${capacity}</strong> 人。可能会拥挤！`;
+                }
+            } else {
+                alertBox.style.display = 'block';
+                alertBox.className = 'capacity-alert';
+                alertBox.style.backgroundColor = '#e2e3e5';
+                alertBox.style.color = '#383d41';
+                alertBox.style.border = '1px solid #d6d8db';
+                alertBox.innerHTML = `ℹ️ 本组总人数: <strong>${totalStudents}</strong> 人。<br>(未能在系统中找到 '${roomName}' 的固定容量数据)`;
+            }
+        }
+
+        function addToQueue() {
+            const period = document.getElementById('periodInput').value.trim();
+            if (!period) {
+                alert("请填写这一组对应的节次！");
+                return;
+            }
+
+            const inputs = document.querySelectorAll('.room-input');
+            let allRoomsFilled = true;
+            
+            batchIdCounter++;
+
+            currentParsedClasses.forEach((item, index) => {
+                const roomVal = inputs[index].value.trim();
+                if (!roomVal) allRoomsFilled = false;
+                
+                item.assignedRoom = roomVal || "_______";
+                item.period = period; 
+                item.batchId = batchIdCounter; 
+            });
+
+            if (!allRoomsFilled) {
+                if (!confirm("检测到有些班级还没有填写教室，确定要直接加入待打印清单吗？")) return;
+            }
+
+            globalPrintQueue.push(...JSON.parse(JSON.stringify(currentParsedClasses)));
+            renderQueueView();
+
+            document.getElementById('engClassInput').value = '';
+            document.getElementById('classesContainer').style.display = 'none';
+            currentParsedClasses = [];
+            totalStudents = 0;
+        }
+
+        function renderQueueView() {
+            const qContainer = document.getElementById('queueContainer');
+            const qList = document.getElementById('queueList');
+
+            if (globalPrintQueue.length === 0) {
+                qContainer.style.display = 'none';
+                return;
+            }
+
+            qContainer.style.display = 'block';
+            qList.innerHTML = '';
+
+            const summary = {};
+            globalPrintQueue.forEach(item => {
+                const key = `[第${item.batchId}组] ⏰ ${item.period} ➡️ 🏫 [ ${item.assignedRoom} ]`;
+                if (!summary[key]) summary[key] = [];
+                summary[key].push(`${item.srcClass}(${item.engClass})`);
+            });
+
+            for (const title in summary) {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.padding = '10px 14px';
+                itemDiv.style.background = '#fff';
+                itemDiv.style.borderLeft = '5px solid #27ae60';
+                itemDiv.style.marginBottom = '10px';
+                itemDiv.style.borderRadius = '4px';
+                itemDiv.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                itemDiv.innerHTML = `<strong>${title}</strong> <br> <span style="color:#555; font-size:16px;">包含: ${summary[title].join('、')}</span>`;
+                qList.appendChild(itemDiv);
+            }
+        }
+
+        function clearQueue() {
+            if (confirm("确定要清空全部已经录入的自习清单吗？")) {
+                globalPrintQueue = [];
+                batchIdCounter = 0;
+                renderQueueView();
+            }
+        }
+
+        function generateAndPrintAll() {
+            if (globalPrintQueue.length === 0) {
+                alert("当前没有任何班级在排队中，请先录入组合并点击加入队列！");
+                return;
+            }
+
+            const date = document.getElementById('dateInput').value;
+            const printArea = document.getElementById('print-area');
+            printArea.innerHTML = '';
+
+            // 按组 (batchId) 把数据隔离开来
+            const groups = {};
+            globalPrintQueue.forEach(item => {
+                if (!groups[item.batchId]) groups[item.batchId] = [];
+                groups[item.batchId].push(item);
+            });
+
+            // 存放所有卡片的HTML（不再需要数组分块）
+            let finalHtml = '';
+
+            // 独立生成卡片，直接拼接进 finalHtml
+            for (const batchId in groups) {
+                const groupData = groups[batchId];
+                const teachersInThisGroup = [...new Set(groupData.map(i => i.teacher.replace(/\s+/g, '')))];
+
+                teachersInThisGroup.forEach(teacherName => {
+                    let bullets = '';
+                    let groupPeriod = '';
+                    
+                    groupData.forEach(c => {
+                        const currentTeacherName = c.teacher.replace(/\s+/g, '');
+                        const isTarget = (currentTeacherName === teacherName);
+                        const liClass = isTarget ? 'highlight-item' : '';
+                        
+                        groupPeriod = c.period;
+                        bullets += `<li class="${liClass}">${c.srcClass} 班的 ${c.engClass} 同学 [ ${c.students}人 ]：到 <strong>${c.assignedRoom}</strong> 教室自习</li>`;
+                    });
+
+                    finalHtml += `
+                        <div class="notice-card">
+                            <h3>${teacherName}老师好：</h3>
+                            <p style="margin: 8px 0;">请协助通知贵班同学，由于英文老师缺席，以下英文班级的同学需于今天（${date}）<strong>${groupPeriod}</strong> 到指定教室进行自习，安排如下：</p>
+                            <ul>
+                                ${bullets}
+                            </ul>
+                            <div class="signature">
+                                谢谢老师的协助！<br><br>
+                                <strong>教务处 启</strong>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            // 直接将像瀑布一样连续的卡片输出到页面，让浏览器的 print CSS 自动计算 A4 容量
+            printArea.innerHTML = finalHtml;
+
+            // 触发打印
+            setTimeout(() => {
+                window.print();
+            }, 250);
+        }
+    </script>
+</body>
+</html>
